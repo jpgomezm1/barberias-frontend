@@ -25,7 +25,7 @@ import ActionButton from './ActionButton';
 import ChatInput from './ChatInput';
 import ConfirmationPopup from './ConfirmationPopup';
 import BrandingFooter from './BrandingFooter';
-import { API_ENDPOINTS } from '../../config/api';
+import { API_ENDPOINTS, ESTABLISHMENT_SUBDOMAIN } from '../../config/api';
 import axios from 'axios';
 import Loader from './Loader';
 import logo from '../../assets/logo.png';
@@ -226,7 +226,8 @@ const Chat = () => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const { data } = await axios.post(API_ENDPOINTS[selectedAction], {
-        prompt: inputValue.trim()
+        prompt: inputValue.trim(),
+        subdomain: ESTABLISHMENT_SUBDOMAIN // Añadir el subdominio a la solicitud
       });
 
       await new Promise(resolve => setTimeout(resolve, 1000));
