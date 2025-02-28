@@ -64,7 +64,11 @@ const Value = styled(Typography)(({ theme }) => ({
 
 const MessageBubble = React.forwardRef(({ 
   message, 
-  isLastMessage
+  isLastMessage,
+  establishmentInfo = { 
+    name: "Misther Barber", 
+    logo_url: "https://storage.googleapis.com/cluvi/newbarber-logo.png" 
+  }
 }, ref) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -690,8 +694,8 @@ const MessageBubble = React.forwardRef(({
             >
               <Box
                 component="img"
-                src="https://storage.googleapis.com/cluvi/newbarber-logo.png"
-                alt="Misther Barber Logo"
+                src={establishmentInfo.logo_url}
+                alt={`${establishmentInfo.name} Logo`}
                 sx={{
                   width: '100%',
                   height: '100%',

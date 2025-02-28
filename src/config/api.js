@@ -31,3 +31,9 @@ export const API_ENDPOINTS = {
 
 // Exportar el subdominio para uso en otros componentes
 export const ESTABLISHMENT_SUBDOMAIN = getSubdomain();
+
+// Exportar información predeterminada del establecimiento
+export const DEFAULT_ESTABLISHMENT_INFO = {
+  name: "Misther Barber",
+  logo_url: "https://storage.googleapis.com/cluvi/newbarber-logo.png"
+};

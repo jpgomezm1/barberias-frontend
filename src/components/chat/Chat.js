@@ -25,12 +25,12 @@ import ActionButton from './ActionButton';
 import ChatInput from './ChatInput';
 import ConfirmationPopup from './ConfirmationPopup';
 import BrandingFooter from './BrandingFooter';
-import { API_ENDPOINTS, ESTABLISHMENT_SUBDOMAIN } from '../../config/api';
+import { API_ENDPOINTS, ESTABLISHMENT_SUBDOMAIN, DEFAULT_ESTABLISHMENT_INFO } from '../../config/api';
 import axios from 'axios';
 import Loader from './Loader';
 import logo from '../../assets/logo.png';
 
-const INITIAL_MESSAGE = `👋 ¡Bienvenido a Misther Barber!
+const INITIAL_MESSAGE = `👋 ¡Bienvenido!
 
 Selecciona la acción que deseas realizar:`;
 
@@ -41,11 +41,11 @@ const ACTIONS = [
     title: 'Agendar Cita',
     description: 'Programa una nueva cita',
     instructions: `Para agendar una cita:
-• Nombre completo
-• Teléfono
-• Barbero
-• Servicio
-• Fecha y hora
+- Nombre completo
+- Teléfono
+- Barbero
+- Servicio
+- Fecha y hora
 Ejemplo:
 "Juan Pérez, corte con Diego, mañana 2pm, 3183351733"`,
   },
@@ -55,8 +55,8 @@ Ejemplo:
     title: 'Consultar Disponibilidad',
     description: 'Verifica horarios disponibles',
     instructions: `Para consultar disponibilidad:
-• Barbero
-• Fecha
+- Barbero
+- Fecha
 Ejemplo:
 "¿Qué horarios tiene Diego mañana?"`,
   },
@@ -66,8 +66,8 @@ Ejemplo:
     title: 'Cancelar Cita',
     description: 'Cancelar una cita',
     instructions: `Para cancelar una cita:
-• Nombre completo
-• Fecha y hora de la cita
+- Nombre completo
+- Fecha y hora de la cita
 Ejemplo:
 "Cancelar mi cita, Juan Pérez, mañana 2pm"`,
   },
@@ -108,6 +108,7 @@ const Chat = () => {
   const [typingIndicator, setTypingIndicator] = useState(false);
   const [confirmationPopupOpen, setConfirmationPopupOpen] = useState(false);
   const [confirmationPopupData, setConfirmationPopupData] = useState({ type: '', message: '' });
+  const [establishmentInfo, setEstablishmentInfo] = useState(DEFAULT_ESTABLISHMENT_INFO);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const inputRef = useRef(null);
@@ -149,14 +150,17 @@ const Chat = () => {
   }, [typingIndicator]);
 
   useEffect(() => {
+    // Mensaje inicial con nombre del establecimiento
     setMessages([
       {
         type: 'system',
-        content: INITIAL_MESSAGE
+        content: `👋 ¡Bienvenido a ${establishmentInfo.name}!
+
+Selecciona la acción que deseas realizar:`
       }
     ]);
     inputRef.current?.focus();
-  }, []);
+  }, [establishmentInfo.name]);
 
   const handleActionSelect = (actionId) => {
     const action = ACTIONS.find(a => a.id === actionId);
@@ -189,7 +193,9 @@ const Chat = () => {
         type: 'system',
         content: selectedAction 
           ? ACTIONS.find(a => a.id === selectedAction).instructions
-          : INITIAL_MESSAGE,
+          : `👋 ¡Bienvenido a ${establishmentInfo.name}!
+
+Selecciona la acción que deseas realizar:`,
         timestamp: new Date().toLocaleTimeString()
       }
     ]);
@@ -225,10 +231,20 @@ const Chat = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
 
+      console.log("Enviando solicitud con subdominio:", ESTABLISHMENT_SUBDOMAIN);
+
       const { data } = await axios.post(API_ENDPOINTS[selectedAction], {
         prompt: inputValue.trim(),
         subdomain: ESTABLISHMENT_SUBDOMAIN // Añadir el subdominio a la solicitud
       });
+
+      // Actualizar información del establecimiento si está disponible
+      if (data.establishment_name) {
+        setEstablishmentInfo({
+          name: data.establishment_name,
+          logo_url: data.logo_url || DEFAULT_ESTABLISHMENT_INFO.logo_url
+        });
+      }
 
       await new Promise(resolve => setTimeout(resolve, 1000));
       setTypingIndicator(false);
@@ -313,11 +329,11 @@ const Chat = () => {
           }}
         >
           <Toolbar sx={{ gap: 2 }}>
-            {/* Logo de la compañía */}
+            {/* Logo dinámico del establecimiento */}
             <Box 
               component="img"
-              src="https://storage.googleapis.com/cluvi/newbarber-logo.png"
-              alt="Misther Barber Logo"
+              src={establishmentInfo.logo_url}
+              alt={`${establishmentInfo.name} Logo`}
               sx={{ 
                 height: 40,
                 width: 'auto',
@@ -331,7 +347,7 @@ const Chat = () => {
                 fontSize: { xs: '1.1rem', sm: '1.25rem' }
               }}
             >
-              Misther Barber
+              {establishmentInfo.name}
             </Typography>
             {loading && <Loader />}
           </Toolbar>
@@ -380,6 +396,7 @@ const Chat = () => {
                       <MessageBubble 
                         message={message} 
                         isLastMessage={index === messages.length - 1}
+                        establishmentInfo={establishmentInfo}
                         ref={index === messages.length - 1 ? messagesEndRef : null}
                       />
                       {message.showActions && (
@@ -415,6 +432,7 @@ const Chat = () => {
                       content: 'Escribiendo...',
                       loading: true
                     }}
+                    establishmentInfo={establishmentInfo}
                   />
                 </motion.div>
               )}
@@ -465,7 +483,7 @@ const Chat = () => {
             
             {/* Footer transparente para ver el fondo */}
             <Box sx={{ py: 2, backgroundColor: 'transparent' }}>
-              <BrandingFooter companyLogo={logo} />
+              <BrandingFooter companyLogo={establishmentInfo.logo_url} />
             </Box>
           </Container>
         </Box>
