@@ -109,9 +109,72 @@ const Chat = () => {
   const [confirmationPopupOpen, setConfirmationPopupOpen] = useState(false);
   const [confirmationPopupData, setConfirmationPopupData] = useState({ type: '', message: '' });
   const [establishmentInfo, setEstablishmentInfo] = useState(DEFAULT_ESTABLISHMENT_INFO);
+  const [initialInfoLoaded, setInitialInfoLoaded] = useState(false);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Verificar si el subdominio ha cambiado desde la última visita
+  useEffect(() => {
+    const currentSubdomain = ESTABLISHMENT_SUBDOMAIN;
+    const storedInfo = localStorage.getItem('establishmentInfo');
+    
+    if (storedInfo) {
+      try {
+        const parsedInfo = JSON.parse(storedInfo);
+        if (parsedInfo.subdomain !== currentSubdomain) {
+          console.log("Subdominio ha cambiado, recargando...");
+          localStorage.removeItem('establishmentInfo');
+          window.location.reload(true);
+        } else {
+          // Si el subdominio es el mismo, usar la información almacenada
+          console.log("Usando información almacenada del establecimiento");
+          setEstablishmentInfo(parsedInfo);
+        }
+      } catch (e) {
+        console.error("Error al procesar información guardada:", e);
+        localStorage.removeItem('establishmentInfo');
+      }
+    }
+  }, []);
+
+  // Cargar información del establecimiento al inicio
+  useEffect(() => {
+    const loadEstablishmentInfo = async () => {
+      try {
+        console.log("Cargando información inicial para subdominio:", ESTABLISHMENT_SUBDOMAIN);
+        
+        // Hacer una solicitud inicial para obtener información
+        const response = await fetch(`${API_ENDPOINTS.establishmentInfo}?subdomain=${ESTABLISHMENT_SUBDOMAIN}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Información del establecimiento recibida:", data);
+          
+          if (data.establishment_name) {
+            const newInfo = {
+              name: data.establishment_name,
+              logo_url: data.logo_url || DEFAULT_ESTABLISHMENT_INFO.logo_url,
+              subdomain: ESTABLISHMENT_SUBDOMAIN
+            };
+            
+            setEstablishmentInfo(newInfo);
+            localStorage.setItem('establishmentInfo', JSON.stringify(newInfo));
+          }
+        } else {
+          console.error("Error al cargar información del establecimiento:", response.statusText);
+        }
+      } catch (error) {
+        console.error("Error al consultar información del establecimiento:", error);
+      } finally {
+        setInitialInfoLoaded(true);
+      }
+    };
+    
+    // Si no hay información almacenada, intentar cargarla
+    if (!localStorage.getItem('establishmentInfo')) {
+      loadEstablishmentInfo();
+    }
+  }, []);
 
   const scrollToBottom = (behavior = 'smooth') => {
     if (messagesEndRef.current && chatContainerRef.current) {
@@ -233,17 +296,32 @@ Selecciona la acción que deseas realizar:`,
 
       console.log("Enviando solicitud con subdominio:", ESTABLISHMENT_SUBDOMAIN);
 
-      const { data } = await axios.post(API_ENDPOINTS[selectedAction], {
+      const response = await axios.post(API_ENDPOINTS[selectedAction], {
         prompt: inputValue.trim(),
         subdomain: ESTABLISHMENT_SUBDOMAIN // Añadir el subdominio a la solicitud
       });
+      
+      const { data } = response;
+      
+      console.log("Respuesta completa del backend:", data);
 
       // Actualizar información del establecimiento si está disponible
       if (data.establishment_name) {
-        setEstablishmentInfo({
+        console.log("Actualizando información del establecimiento:", {
           name: data.establishment_name,
-          logo_url: data.logo_url || DEFAULT_ESTABLISHMENT_INFO.logo_url
+          logo_url: data.logo_url
         });
+        
+        const newInfo = {
+          name: data.establishment_name,
+          logo_url: data.logo_url || DEFAULT_ESTABLISHMENT_INFO.logo_url,
+          subdomain: ESTABLISHMENT_SUBDOMAIN
+        };
+        
+        setEstablishmentInfo(newInfo);
+        localStorage.setItem('establishmentInfo', JSON.stringify(newInfo));
+      } else {
+        console.warn("La respuesta del backend no contiene establishment_name");
       }
 
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -332,7 +410,8 @@ Selecciona la acción que deseas realizar:`,
             {/* Logo dinámico del establecimiento */}
             <Box 
               component="img"
-              src={establishmentInfo.logo_url}
+              // Añadimos un parámetro de caché para forzar recarga
+              src={`${establishmentInfo.logo_url}?_cache=${new Date().getTime()}`}
               alt={`${establishmentInfo.name} Logo`}
               sx={{ 
                 height: 40,

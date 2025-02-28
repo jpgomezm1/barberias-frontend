@@ -33,6 +33,7 @@ export const API_ENDPOINTS = {
   appointment: `${API_BASE_URL}/appointment`,
   availability: `${API_BASE_URL}/availability`,
   cancel: `${API_BASE_URL}/cancel`,
+  establishmentInfo: `${API_BASE_URL}/establishment-info`
 };
 
 // Exportar el subdominio para uso en otros componentes
