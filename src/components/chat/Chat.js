@@ -97,7 +97,7 @@ const messageVariants = {
   }
 };
 
-const Chat = () => {
+const Chat = ({ onEstablishmentInfoChange }) => {
   const customTheme = useTheme();
   const isMobile = useMediaQuery(customTheme.breakpoints.down('sm'));
   const [messages, setMessages] = useState([]);
@@ -130,13 +130,16 @@ const Chat = () => {
           // Si el subdominio es el mismo, usar la información almacenada
           console.log("Usando información almacenada del establecimiento");
           setEstablishmentInfo(parsedInfo);
+          if (onEstablishmentInfoChange) {
+            onEstablishmentInfoChange(parsedInfo);
+          }
         }
       } catch (e) {
         console.error("Error al procesar información guardada:", e);
         localStorage.removeItem('establishmentInfo');
       }
     }
-  }, []);
+  }, [onEstablishmentInfoChange]);
 
   // Cargar información del establecimiento al inicio
   useEffect(() => {
@@ -159,6 +162,20 @@ const Chat = () => {
             
             setEstablishmentInfo(newInfo);
             localStorage.setItem('establishmentInfo', JSON.stringify(newInfo));
+            localStorage.setItem('establishmentLogo', newInfo.logo_url);
+            
+            // Notificar al componente padre
+            if (onEstablishmentInfoChange) {
+              onEstablishmentInfoChange(newInfo);
+            }
+            
+            // Emitir evento para notificar a otros componentes
+            const event = new CustomEvent('establishmentInfoChanged', {
+              detail: {
+                establishmentInfo: newInfo
+              }
+            });
+            window.dispatchEvent(event);
           }
         } else {
           console.error("Error al cargar información del establecimiento:", response.statusText);
@@ -174,7 +191,7 @@ const Chat = () => {
     if (!localStorage.getItem('establishmentInfo')) {
       loadEstablishmentInfo();
     }
-  }, []);
+  }, [onEstablishmentInfoChange]);
 
   const scrollToBottom = (behavior = 'smooth') => {
     if (messagesEndRef.current && chatContainerRef.current) {
@@ -320,6 +337,20 @@ Selecciona la acción que deseas realizar:`,
         
         setEstablishmentInfo(newInfo);
         localStorage.setItem('establishmentInfo', JSON.stringify(newInfo));
+        localStorage.setItem('establishmentLogo', newInfo.logo_url);
+        
+        // Notificar al componente padre
+        if (onEstablishmentInfoChange) {
+          onEstablishmentInfoChange(newInfo);
+        }
+        
+        // Emitir evento para notificar a otros componentes
+        const event = new CustomEvent('establishmentInfoChanged', {
+          detail: {
+            establishmentInfo: newInfo
+          }
+        });
+        window.dispatchEvent(event);
       } else {
         console.warn("La respuesta del backend no contiene establishment_name");
       }

@@ -12,7 +12,7 @@ import {
   QrCode as QrCodeIcon 
 } from '@mui/icons-material';
 
-const MobileOnlyMessage = () => {
+const MobileOnlyMessage = ({ establishmentInfo }) => {
   const theme = useTheme();
 
   return (
@@ -59,8 +59,8 @@ const MobileOnlyMessage = () => {
           {/* Logo */}
           <Box
             component="img"
-            src="https://storage.googleapis.com/cluvi/newbarber-logo.png"
-            alt="Misther Barber Logo"
+            src={establishmentInfo.logo_url}
+            alt={`${establishmentInfo.name} Logo`}
             sx={{
               height: 80,
               width: 'auto',
@@ -91,7 +91,7 @@ const MobileOnlyMessage = () => {
               mx: 'auto',
             }}
           >
-            La aplicación de Misther Barber está diseñada exclusivamente para dispositivos móviles para brindarte la mejor experiencia al agendar tus citas. Por favor, accede desde tu smartphone para disfrutar de todas las funcionalidades.
+            La aplicación está diseñada exclusivamente para dispositivos móviles para brindarte la mejor experiencia al agendar tus citas. Por favor, accede desde tu smartphone para disfrutar de todas las funcionalidades.
           </Typography>
 
           {/* Información visual */}
@@ -166,7 +166,7 @@ const MobileOnlyMessage = () => {
               color: 'text.secondary',
             }}
           >
-            © {new Date().getFullYear()} Misther Barber. Todos los derechos reservados.
+            © {new Date().getFullYear()} irrelevant club. Todos los derechos reservados.
           </Typography>
         </Paper>
       </Container>
