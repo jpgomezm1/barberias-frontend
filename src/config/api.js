@@ -27,7 +27,7 @@ const getSubdomain = () => {
   return 'desconocido'; // Valor por defecto
 };
 
-export const API_BASE_URL = 'https://74cf0bf63280.ngrok.app'; // URL del backend con ngrok
+export const API_BASE_URL = 'https://barberias-backend-735207921266.us-central1.run.app'; // URL del backend con ngrok
 
 export const API_ENDPOINTS = {
   appointment: `${API_BASE_URL}/appointment`,
