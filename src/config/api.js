@@ -6,7 +6,7 @@ const getSubdomain = () => {
   // Si estamos en localhost, usar un subdominio de prueba
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     console.log("Usando subdominio de prueba para localhost");
-    return 'prueba'; // Subdominio de prueba para desarrollo local
+    return 'demo'; // Subdominio de prueba para desarrollo local
   }
   
   // Si es el dominio principal sin subdominio, usar un valor predeterminado
@@ -27,13 +27,29 @@ const getSubdomain = () => {
   return 'desconocido'; // Valor por defecto
 };
 
-export const API_BASE_URL = 'https://barberias-backend-735207921266.us-central1.run.app'; // URL del backend con ngrok
+// Determinar la URL base del API según el entorno
+const getApiBaseUrl = () => {
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log("Usando API local para desarrollo");
+    return 'http://127.0.0.1:8080'; // URL local para desarrollo
+  } else {
+    console.log("Usando API de producción");
+    return 'https://barberias-backend-735207921266.us-central1.run.app'; // URL de producción
+  }
+};
+
+export const API_BASE_URL = getApiBaseUrl();
+console.log("API_BASE_URL configurado como:", API_BASE_URL);
 
 export const API_ENDPOINTS = {
   appointment: `${API_BASE_URL}/appointment`,
   availability: `${API_BASE_URL}/availability`,
   cancel: `${API_BASE_URL}/cancel`,
-  establishmentInfo: `${API_BASE_URL}/establishment-info`
+  establishmentInfo: `${API_BASE_URL}/establishment-info`,
+  barber_schedule: `${API_BASE_URL}/barber_schedule` ,
+  barbers: `${API_BASE_URL}/barbers`,  // Nuevo endpoint
+  services: `${API_BASE_URL}/services` // Nuevo endpoint para consultar servicios
 };
 
 // Exportar el subdominio para uso en otros componentes

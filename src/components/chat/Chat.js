@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';  
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -11,11 +11,13 @@ import {
   Snackbar,
   useTheme,
   useMediaQuery,
+  SwipeableDrawer,
 } from '@mui/material';
 import { 
   EventAvailable as CalendarIcon,
   Search as SearchIcon,
   Cancel as CancelIcon,
+  CalendarViewWeek as CalendarWeekIcon,
 } from '@mui/icons-material';
 import { ThemeProvider } from '@mui/material/styles';
 import { theme } from '../../theme';
@@ -28,6 +30,8 @@ import BrandingFooter from './BrandingFooter';
 import { API_ENDPOINTS, ESTABLISHMENT_SUBDOMAIN, DEFAULT_ESTABLISHMENT_INFO } from '../../config/api';
 import axios from 'axios';
 import Loader from './Loader';
+import WeeklySchedule from '../calendar/WeeklySchedule';
+import AppointmentFormModal from '../calendar/AppointmentFormModal'; // Importa el nuevo componente en Chat.js
 import logo from '../../assets/logo.png';
 
 const INITIAL_MESSAGE = `👋 ¡Bienvenido!
@@ -36,29 +40,11 @@ Selecciona la acción que deseas realizar:`;
 
 const ACTIONS = [
   {
-    id: 'appointment',
-    icon: CalendarIcon,
-    title: 'Agendar Cita',
-    description: 'Programa una nueva cita',
-    instructions: `Para agendar una cita:
-- Nombre completo
-- Teléfono
-- Barbero
-- Servicio
-- Fecha y hora
-Ejemplo:
-"Juan Pérez, corte con Diego, mañana 2pm, 3183351733"`,
-  },
-  {
-    id: 'availability',
-    icon: SearchIcon,
-    title: 'Consultar Disponibilidad',
-    description: 'Verifica horarios disponibles',
-    instructions: `Para consultar disponibilidad:
-- Barbero
-- Fecha
-Ejemplo:
-"¿Qué horarios tiene Diego mañana?"`,
+    id: 'calendar',
+    icon: CalendarWeekIcon,
+    title: 'Agenda tu Cita',
+    description: 'Visualiza la disponibilidad de la semana y agenda tu cita',
+    instructions: `Ahora puedes ver el horario semanal completo de nuestros barberos y seleccionar una cita directamente desde el calendario.`,
   },
   {
     id: 'cancel',
@@ -71,6 +57,7 @@ Ejemplo:
 Ejemplo:
 "Cancelar mi cita, Juan Pérez, mañana 2pm"`,
   },
+  
 ];
 
 const messageVariants = {
@@ -110,6 +97,11 @@ const Chat = ({ onEstablishmentInfoChange }) => {
   const [confirmationPopupData, setConfirmationPopupData] = useState({ type: '', message: '' });
   const [establishmentInfo, setEstablishmentInfo] = useState(DEFAULT_ESTABLISHMENT_INFO);
   const [initialInfoLoaded, setInitialInfoLoaded] = useState(false);
+  const [showWeeklySchedule, setShowWeeklySchedule] = useState(false);
+  // Estados para el nuevo formulario de cita
+  const [appointmentFormOpen, setAppointmentFormOpen] = useState(false);
+  const [selectedTimeInfo, setSelectedTimeInfo] = useState(null);
+
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const inputRef = useRef(null);
@@ -242,9 +234,62 @@ Selecciona la acción que deseas realizar:`
     inputRef.current?.focus();
   }, [establishmentInfo.name]);
 
+  // Modifica la función handleTimeSlotSelect para incorporar el nuevo formulario
+  const handleTimeSlotSelect = (slotData) => {
+    // Guardar información del horario seleccionado
+    setSelectedTimeInfo({
+      barber: slotData.barber,
+      date: slotData.dateTime.split('T')[0],
+      time: {
+        start: slotData.dateTime.split('T')[1].substring(0, 5),
+        end: slotData.endTime // Asegúrate que el objeto slotData incluya endTime
+      },
+      formattedDateTime: slotData.formattedDateTime
+    });
+    
+    // Cerrar el modal del horario semanal
+    setShowWeeklySchedule(false);
+    
+    // Abrir el formulario de cita
+    setAppointmentFormOpen(true);
+  };
+
+  // Función para manejar el envío del formulario de cita
+  const handleAppointmentFormSubmit = (formData) => {
+    // Cerrar el formulario
+    setAppointmentFormOpen(false);
+    
+    // Construir mensaje completo para el sistema
+    const fullMessage = `Quiero agendar una cita con ${formData.barber} para el ${formData.formattedDateTime}. Mi nombre es ${formData.clientName}, mi teléfono es ${formData.phone} y quiero un servicio de ${formData.service}.`;
+    
+    // Simular entrada de usuario
+    setMessages(prev => [
+      ...prev,
+      {
+        type: 'user',
+        content: fullMessage,
+        timestamp: new Date().toLocaleTimeString()
+      }
+    ]);
+    
+    // Cambiar la acción a appointment
+    setSelectedAction('appointment');
+    
+    // Procesar la solicitud automáticamente, pasando 'appointment' como override
+    handleSubmit({
+      preventDefault: () => {},
+      target: null
+    }, fullMessage, 'appointment');
+  };
+
   const handleActionSelect = (actionId) => {
     const action = ACTIONS.find(a => a.id === actionId);
     if (!action) return;
+
+    if (actionId === 'calendar') {
+      setShowWeeklySchedule(true);
+      return;
+    }
 
     setSelectedAction(actionId);
     setMessages(prev => [
@@ -288,23 +333,28 @@ Selecciona la acción que deseas realizar:`,
     setTypingIndicator(false);
   };
 
-  const handleSubmit = async (e) => {
+  // Modificar handleSubmit para aceptar un tercer parámetro "actionOverride"
+  const handleSubmit = async (e, overrideValue = null, actionOverride = null) => {
     e.preventDefault();
-    if (!inputValue.trim() || loading || !selectedAction) return;
+    const submitValue = overrideValue || inputValue;
+    
+    if ((!submitValue.trim() || loading || !selectedAction) && !overrideValue) return;
 
     setLoading(true);
     setError(null);
     
-    const userMessage = {
-      type: 'user',
-      content: inputValue.trim(),
-      timestamp: new Date().toLocaleTimeString()
-    };
+    if (!overrideValue) {
+      const userMessage = {
+        type: 'user',
+        content: submitValue.trim(),
+        timestamp: new Date().toLocaleTimeString()
+      };
+      
+      setMessages(prev => [...prev, userMessage]);
+      setInputValue('');
+      scrollToBottom('smooth');
+    }
     
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    scrollToBottom('smooth');
-
     setTypingIndicator(true);
     scrollToBottom('smooth');
 
@@ -312,9 +362,13 @@ Selecciona la acción que deseas realizar:`,
       await new Promise(resolve => setTimeout(resolve, 500));
 
       console.log("Enviando solicitud con subdominio:", ESTABLISHMENT_SUBDOMAIN);
+      
+      // Usar la acción sobrescrita o la seleccionada
+      const endpointAction = actionOverride || selectedAction;
+      console.log("Endpoint a usar:", API_ENDPOINTS[endpointAction]);
 
-      const response = await axios.post(API_ENDPOINTS[selectedAction], {
-        prompt: inputValue.trim(),
+      const response = await axios.post(API_ENDPOINTS[endpointAction], {
+        prompt: submitValue.trim(),
         subdomain: ESTABLISHMENT_SUBDOMAIN // Añadir el subdominio a la solicitud
       });
       
@@ -367,10 +421,10 @@ Selecciona la acción que deseas realizar:`,
       setMessages(prev => [...prev, systemMessage]);
       scrollToBottom('smooth');
 
-      if (selectedAction === 'appointment') {
+      if (endpointAction === 'appointment') {
         setConfirmationPopupData({ type: 'appointment', message: 'Agendamiento Confirmado' });
         setConfirmationPopupOpen(true);
-      } else if (selectedAction === 'cancel') {
+      } else if (endpointAction === 'cancel') {
         setConfirmationPopupData({ type: 'cancel', message: 'Cancelación Confirmada' });
         setConfirmationPopupOpen(true);
       }
@@ -627,6 +681,39 @@ Selecciona la acción que deseas realizar:`,
             {error}
           </Alert>
         </Snackbar>
+        
+        {/* Modal de calendario semanal */}
+        {showWeeklySchedule && (
+          <SwipeableDrawer
+            anchor="bottom"
+            open={showWeeklySchedule}
+            onClose={() => setShowWeeklySchedule(false)}
+            onOpen={() => {}}
+            disableSwipeToOpen
+            PaperProps={{
+              sx: {
+                height: '100%',
+                maxHeight: '100%',
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+              }
+            }}
+          >
+            <WeeklySchedule 
+              onClose={() => setShowWeeklySchedule(false)} 
+              onTimeSlotSelect={handleTimeSlotSelect}
+            />
+          </SwipeableDrawer>
+        )}
+
+        {/* Modal de cita después de seleccionar horario */}
+        <AppointmentFormModal
+          open={appointmentFormOpen}
+          onClose={() => setAppointmentFormOpen(false)}
+          onSubmit={handleAppointmentFormSubmit}
+          selectedTimeInfo={selectedTimeInfo}
+          loading={loading}
+        />
       </Box>
     </ThemeProvider>
   );
