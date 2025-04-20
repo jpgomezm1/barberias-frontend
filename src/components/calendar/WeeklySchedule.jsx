@@ -1,4 +1,3 @@
-// WeeklySchedule.js
 import React, { useState, useEffect } from 'react';
 import { 
   Box, 
@@ -40,14 +39,12 @@ const WeeklySchedule = ({ onClose, onTimeSlotSelect }) => {
   const fetchScheduleData = async () => {
     setLoading(true);
     setError(null);
-    
     try {
       const response = await axios.post(API_ENDPOINTS.barber_schedule, {
         barber: selectedBarber,
         week_start: currentWeekStart.toISOString().split('T')[0],
         subdomain: ESTABLISHMENT_SUBDOMAIN
       });
-      
       setScheduleData(response.data);
     } catch (error) {
       console.error('Error fetching schedule:', error);
@@ -75,21 +72,19 @@ const WeeklySchedule = ({ onClose, onTimeSlotSelect }) => {
     );
   };
 
-  // En WeeklySchedule.js, modifica la función handleTimeSlotSelect:
-const handleTimeSlotSelect = (date, timeSlot) => {
+  // Modificación: enviamos dateTime como cadena local y evitamos conversión a UTC
+  const handleTimeSlotSelect = (date, timeSlot) => {
     if (onTimeSlotSelect) {
-      // Creamos un objeto DateTime con la fecha y hora seleccionadas
-      const selectedDateTime = new Date(`${date}T${timeSlot.start}:00`);
-      
-      // Para la hora de fin, convertimos a Date y añadimos 30 minutos
-      const endDateTime = new Date(selectedDateTime);
-      endDateTime.setMinutes(endDateTime.getMinutes() + 30); // Asumimos citas de 30 minutos
-      
+      const dateTimeLocal = `${date}T${timeSlot.start}`;
+      // Formateamos la fecha en español y zona America/Bogota
+      const formattedDate = new Date(dateTimeLocal).toLocaleDateString('es-ES', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Bogota'
+      });
       onTimeSlotSelect({
         barber: selectedBarber,
-        dateTime: selectedDateTime.toISOString(),
+        dateTime: dateTimeLocal,
         endTime: timeSlot.end,
-        formattedDateTime: `${selectedDateTime.toLocaleDateString()} ${timeSlot.start}`
+        formattedDateTime: `${formattedDate} ${timeSlot.start}`
       });
     }
   };
@@ -97,17 +92,13 @@ const handleTimeSlotSelect = (date, timeSlot) => {
   // Si no hay barbero seleccionado, mostrar selector
   if (!selectedBarber) {
     return (
-      <BarberSelector 
-        onSelect={setSelectedBarber} 
-        onClose={onClose} 
-      />
+      <BarberSelector onSelect={setSelectedBarber} onClose={onClose} />
     );
   }
 
   // Formatear fechas para mostrar rango semanal
   const weekEndDate = new Date(currentWeekStart);
   weekEndDate.setDate(weekEndDate.getDate() + 6);
-  
   const formatDateRange = () => {
     const options = { month: 'short', day: 'numeric' };
     return `${currentWeekStart.toLocaleDateString(undefined, options)} - ${weekEndDate.toLocaleDateString(undefined, options)}`;
@@ -115,76 +106,33 @@ const handleTimeSlotSelect = (date, timeSlot) => {
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header con navegación */}
-      <Paper 
+      <Paper
         elevation={0}
-        sx={{ 
-          p: 2, 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          borderBottom: '1px solid rgba(0,0,0,0.08)',
-          backgroundColor: '#2C3E50',
-          color: 'white'
-        }}
+        sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+             borderBottom: '1px solid rgba(0,0,0,0.08)', backgroundColor: '#2C3E50', color: 'white' }}
       >
-        <IconButton onClick={onClose} sx={{ color: 'white' }}>
-          <ArrowBackIcon />
-        </IconButton>
-        
+        <IconButton onClick={onClose} sx={{ color: 'white' }}><ArrowBackIcon /></IconButton>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem' }}>
             Horario de {selectedBarber}
           </Typography>
-          <Typography variant="caption">
-            {formatDateRange()}
-          </Typography>
+          <Typography variant="caption">{formatDateRange()}</Typography>
         </Box>
-        
-        <Box sx={{ visibility: 'hidden' }}>
-          <ArrowBackIcon />
-        </Box>
+        <Box sx={{ visibility: 'hidden' }}><ArrowBackIcon /></Box>
       </Paper>
-      
-      {/* Navegación de semanas */}
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        p: 1.5,
-        borderBottom: '1px solid rgba(0,0,0,0.08)',
-        backgroundColor: 'rgba(0,0,0,0.02)'
-      }}>
-        <IconButton onClick={handlePreviousWeek} size="small">
-          <PrevIcon />
-        </IconButton>
-        
-        <Button 
-          startIcon={<TodayIcon />} 
-          onClick={handleTodayClick}
-          size="small"
-          sx={{ 
-            textTransform: 'none',
-            backgroundColor: 'rgba(0,0,0,0.05)',
-            '&:hover': {
-              backgroundColor: 'rgba(0,0,0,0.1)',
-            }
-          }}
-        >
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5,
+                  borderBottom: '1px solid rgba(0,0,0,0.08)', backgroundColor: 'rgba(0,0,0,0.02)' }}>
+        <IconButton onClick={handlePreviousWeek} size="small"><PrevIcon /></IconButton>
+        <Button startIcon={<TodayIcon />} onClick={handleTodayClick} size="small"
+                sx={{ textTransform: 'none', backgroundColor: 'rgba(0,0,0,0.05)',
+                      '&:hover': { backgroundColor: 'rgba(0,0,0,0.1)' } }}>
           Hoy
         </Button>
-        
-        <IconButton onClick={handleNextWeek} size="small">
-          <NextIcon />
-        </IconButton>
+        <IconButton onClick={handleNextWeek} size="small"><NextIcon /></IconButton>
       </Box>
-      
-      {/* Content */}
-      <Box sx={{ 
-        flex: 1, 
-        overflow: 'auto',
-        p: 1
-      }}>
+
+      <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
             <CircularProgress size={36} />
@@ -192,27 +140,13 @@ const handleTimeSlotSelect = (date, timeSlot) => {
         ) : error ? (
           <Box sx={{ p: 2, textAlign: 'center' }}>
             <Typography color="error">{error}</Typography>
-            <Button 
-              variant="outlined" 
-              sx={{ mt: 2 }}
-              onClick={fetchScheduleData}
-            >
-              Reintentar
-            </Button>
+            <Button variant="outlined" sx={{ mt: 2 }} onClick={fetchScheduleData}>Reintentar</Button>
           </Box>
         ) : scheduleData ? (
-          <Box sx={{ 
-            display: 'flex', 
-            width: '100%', 
-            overflowX: 'auto',
-            pb: 2
-          }}>
-            {Object.values(scheduleData.schedule).map((dayData) => (
-              <DayColumn
-                key={dayData.date}
-                dayData={dayData}
-                onTimeSlotSelect={(timeSlot) => handleTimeSlotSelect(dayData.date, timeSlot)}
-              />
+          <Box sx={{ display: 'flex', width: '100%', overflowX: 'auto', pb: 2 }}>
+            {Object.values(scheduleData.schedule).map(dayData => (
+              <DayColumn key={dayData.date} dayData={dayData}
+                         onTimeSlotSelect={ts => handleTimeSlotSelect(dayData.date, ts)} />
             ))}
           </Box>
         ) : null}

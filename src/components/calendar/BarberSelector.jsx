@@ -48,7 +48,12 @@ const BarberSelector = ({ onSelect, onClose }) => {
         });
         
         if (response.data && response.data.barbers) {
-          setBarbers(response.data.barbers);
+          // Agregamos una foto de placeholder para cada barbero
+          const withPhotos = response.data.barbers.map((b, i) => ({
+            ...b,
+            photoUrl: `https://i.pravatar.cc/150?img=${i + 1}`
+          }));
+          setBarbers(withPhotos);
         } else {
           setError('No se encontraron barberos en este establecimiento');
         }
@@ -81,7 +86,11 @@ const BarberSelector = ({ onSelect, onClose }) => {
         });
         
         if (response.data && response.data.barbers) {
-          setBarbers(response.data.barbers);
+          const withPhotos = response.data.barbers.map((b, i) => ({
+            ...b,
+            photoUrl: `https://i.pravatar.cc/150?img=${i + 1}`
+          }));
+          setBarbers(withPhotos);
         } else {
           setError('No se encontraron barberos en este establecimiento');
         }
@@ -265,7 +274,7 @@ const BarberSelector = ({ onSelect, onClose }) => {
             animate="visible"
           >
             <List disablePadding>
-              {filteredBarbers.map((barber) => (
+              {filteredBarbers.map((barber, index) => (
                 <motion.div
                   key={barber.name}
                   variants={itemVariants}
@@ -286,14 +295,14 @@ const BarberSelector = ({ onSelect, onClose }) => {
                     }}
                   >
                     <ListItemAvatar>
-                      <Avatar sx={{ 
-                        bgcolor: 'rgba(44, 62, 80, 0.06)',
-                        width: 40,
-                        height: 40,
-                        color: '#2C3E50'
-                      }}>
-                        <BarberIcon />
-                      </Avatar>
+                      <Avatar
+                        src={barber.photoUrl}
+                        alt={barber.name}
+                        sx={{ 
+                          width: 40,
+                          height: 40
+                        }}
+                      />
                     </ListItemAvatar>
                     <ListItemText 
                       primary={
