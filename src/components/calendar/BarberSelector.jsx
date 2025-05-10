@@ -32,6 +32,13 @@ const BarberIcon = (props) => (
   </SvgIcon>
 );
 
+// Array de imágenes específicas para los barberos
+const BARBER_IMAGES = [
+  'https://storage.googleapis.com/cluvi/Imagenes/barbero_diego.jpg',
+  'https://storage.googleapis.com/cluvi/Imagenes/barbero2.jpg',
+  'https://storage.googleapis.com/cluvi/Imagenes/barbero3.jpg'
+];
+
 const BarberSelector = ({ onSelect, onClose }) => {
   const [barbers, setBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,10 +55,10 @@ const BarberSelector = ({ onSelect, onClose }) => {
         });
         
         if (response.data && response.data.barbers) {
-          // Agregamos una foto de placeholder para cada barbero
+          // Asignamos las imágenes específicas a cada barbero
           const withPhotos = response.data.barbers.map((b, i) => ({
             ...b,
-            photoUrl: `https://i.pravatar.cc/150?img=${i + 1}`
+            photoUrl: BARBER_IMAGES[i % BARBER_IMAGES.length]
           }));
           setBarbers(withPhotos);
         } else {
@@ -86,9 +93,10 @@ const BarberSelector = ({ onSelect, onClose }) => {
         });
         
         if (response.data && response.data.barbers) {
+          // Asignamos las imágenes específicas a cada barbero
           const withPhotos = response.data.barbers.map((b, i) => ({
             ...b,
-            photoUrl: `https://i.pravatar.cc/150?img=${i + 1}`
+            photoUrl: BARBER_IMAGES[i % BARBER_IMAGES.length]
           }));
           setBarbers(withPhotos);
         } else {
