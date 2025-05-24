@@ -72,19 +72,34 @@ const WeeklySchedule = ({ onClose, onTimeSlotSelect }) => {
     );
   };
 
+  // Función para filtrar días que ya pasaron
+  const filterFutureDays = (scheduleData) => {
+    if (!scheduleData || !scheduleData.schedule) return [];
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Resetear horas para comparar solo fechas
+    
+    return Object.values(scheduleData.schedule).filter(dayData => {
+      const dayDate = new Date(dayData.date + 'T00:00:00');
+      return dayDate >= today; // Solo incluir hoy y días futuros
+    });
+  };
+
   // Modificación: enviamos dateTime como cadena local y evitamos conversión a UTC
   const handleTimeSlotSelect = (date, timeSlot) => {
     if (onTimeSlotSelect) {
       const dateTimeLocal = `${date}T${timeSlot.start}`;
-      // Formateamos la fecha en español y zona America/Bogota
       const formattedDate = new Date(dateTimeLocal).toLocaleDateString('es-ES', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Bogota'
       });
+      
       onTimeSlotSelect({
         barber: selectedBarber,
         dateTime: dateTimeLocal,
         endTime: timeSlot.end,
-        formattedDateTime: `${formattedDate} ${timeSlot.start}`
+        formattedDateTime: `${formattedDate} ${timeSlot.start}`,
+        time: timeSlot, // Asegúrate de pasar el timeSlot completo con todas sus propiedades
+        date: date
       });
     }
   };
@@ -103,6 +118,9 @@ const WeeklySchedule = ({ onClose, onTimeSlotSelect }) => {
     const options = { month: 'short', day: 'numeric' };
     return `${currentWeekStart.toLocaleDateString(undefined, options)} - ${weekEndDate.toLocaleDateString(undefined, options)}`;
   };
+
+  // Obtener días filtrados (solo actuales y futuros)
+  const futureDays = scheduleData ? filterFutureDays(scheduleData) : [];
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -142,12 +160,21 @@ const WeeklySchedule = ({ onClose, onTimeSlotSelect }) => {
             <Typography color="error">{error}</Typography>
             <Button variant="outlined" sx={{ mt: 2 }} onClick={fetchScheduleData}>Reintentar</Button>
           </Box>
-        ) : scheduleData ? (
+        ) : futureDays.length > 0 ? (
           <Box sx={{ display: 'flex', width: '100%', overflowX: 'auto', pb: 2 }}>
-            {Object.values(scheduleData.schedule).map(dayData => (
+            {futureDays.map(dayData => (
               <DayColumn key={dayData.date} dayData={dayData}
                          onTimeSlotSelect={ts => handleTimeSlotSelect(dayData.date, ts)} />
             ))}
+          </Box>
+        ) : scheduleData ? (
+          <Box sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="h6" sx={{ color: '#64748B', mb: 1 }}>
+              No hay días disponibles
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+              Todos los días de esta semana ya han pasado. Intenta con la siguiente semana.
+            </Typography>
           </Box>
         ) : null}
       </Box>

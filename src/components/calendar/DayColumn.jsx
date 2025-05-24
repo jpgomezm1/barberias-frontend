@@ -78,9 +78,10 @@ const DayColumn = ({ dayData, onTimeSlotSelect }) => {
       <Paper
         elevation={0}
         sx={{
-          minWidth: '105px', 
-          width: '14.28%',
-          maxWidth: '135px',
+          minWidth: '120px', // Aumentamos el ancho mínimo
+          width: 'auto', // Permitir que se ajuste automáticamente
+          flex: 1, // Usar flex para distribuir equitativamente
+          maxWidth: '180px', // Aumentamos el ancho máximo
           mx: 0.5,
           mb: 1,
           borderRadius: 3,
