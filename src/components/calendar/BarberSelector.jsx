@@ -36,7 +36,7 @@ const BarberIcon = (props) => (
 const BARBER_IMAGES = [
   'https://storage.googleapis.com/cluvi/Imagenes/barbero_diego.jpg',
   'https://storage.googleapis.com/cluvi/Imagenes/barbero2.jpg',
-  'https://storage.googleapis.com/cluvi/Imagenes/barbero3.jpg'
+  'https://storage.googleapis.com/cluvi/Art_And_Welness/tecer_barbero.jpeg'
 ];
 
 const BarberSelector = ({ onSelect, onClose }) => {
