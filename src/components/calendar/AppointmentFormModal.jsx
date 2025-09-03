@@ -19,6 +19,7 @@ import {
  AccessTime as TimeIcon,
  Person as PersonIcon,
  Phone as PhoneIcon,
+ Email as EmailIcon,
  ContentCut as ServiceIcon,
  Close as CloseIcon
 } from '@mui/icons-material';
@@ -38,13 +39,15 @@ const AppointmentFormModal = ({
  const [formData, setFormData] = useState({
    clientName: '',
    phone: '',
-   service: ''
+   service: '',
+   email: '' // Nuevo campo opcional
  });
  
  const [errors, setErrors] = useState({
    clientName: false,
    phone: false,
-   service: false
+   service: false,
+   email: false // Error state para email
  });
  
  // Estado para los servicios obtenidos del endpoint
@@ -61,17 +64,9 @@ const AppointmentFormModal = ({
    }).format(value);
  };
 
- // Función para detectar si es el último slot (horario 7:00 PM o 19:00)
+ // Función para detectar si es el último slot basado en la propiedad isLastSlot
  const isLastSlot = () => {
-   const timeStart = selectedTimeInfo?.time?.start;
-   if (!timeStart) return false;
-   
-   // Convertir la hora a formato 24h para comparar
-   const [hours, minutes] = timeStart.split(':');
-   const hour24 = parseInt(hours);
-   
-   // Si la hora es 19:00 (7:00 PM) o mayor, es el último slot
-   return hour24 >= 19;
+   return selectedTimeInfo?.isLastSlot === true;
  };
 
  useEffect(() => {
@@ -80,27 +75,32 @@ const AppointmentFormModal = ({
      setFormData({
        clientName: '',
        phone: '',
-       service: ''
+       service: '',
+       email: ''
      });
      
      setErrors({
        clientName: false,
        phone: false,
-       service: false
+       service: false,
+       email: false
      });
      
      // Consulta el endpoint para obtener los servicios cada vez que el modal se abre
+     const isLastSlotSelected = isLastSlot();
+     
      setLoadingServices(true);
      axios.post(API_ENDPOINTS.services, { subdomain: ESTABLISHMENT_SUBDOMAIN })
        .then((res) => {
          if (res.data && res.data.services) {
            let availableServices = res.data.services;
            
-           // Si es el último slot (7:00 PM o después), filtrar solo "Corte"
-           if (isLastSlot()) {
-             availableServices = res.data.services.filter(service => 
-               service.name.toLowerCase() === "corte"
-             );
+           // Si es el último slot, filtrar solo servicios permitidos (Corte y Barba)
+           if (isLastSlotSelected) {
+             availableServices = res.data.services.filter(service => {
+               const serviceName = service.name.toLowerCase();
+               return serviceName === "corte" || serviceName === "barba";
+             });
            }
            
            setServices(availableServices);
@@ -139,12 +139,20 @@ const AppointmentFormModal = ({
    return phoneRegex.test(phone);
  };
  
+ // Validación de email (opcional pero debe ser formato válido si se proporciona)
+ const validateEmail = (email) => {
+   if (!email.trim()) return true; // Válido si está vacío (opcional)
+   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+   return emailRegex.test(email);
+ };
+ 
  const handleSubmit = () => {
    // Validar campos
    const newErrors = {
      clientName: !formData.clientName.trim(),
      phone: !validatePhone(formData.phone),
-     service: !formData.service
+     service: !formData.service,
+     email: !validateEmail(formData.email) // Solo error si formato es inválido
    };
    
    setErrors(newErrors);
@@ -159,7 +167,8 @@ const AppointmentFormModal = ({
      ...selectedTimeInfo,
      clientName: formData.clientName.trim(),
      phone: formData.phone.trim(),
-     service: formData.service
+     service: formData.service,
+     email: formData.email.trim() // Incluir email (puede estar vacío)
    });
  };
  
@@ -430,6 +439,32 @@ const AppointmentFormModal = ({
                startAdornment: (
                  <InputAdornment position="start">
                    <PhoneIcon sx={{ color: errors.phone ? 'error.main' : 'action.active' }} />
+                 </InputAdornment>
+               ),
+             }}
+             sx={{
+               mb: 2,
+               '& .MuiOutlinedInput-root': {
+                 borderRadius: 1.5
+               }
+             }}
+           />
+           
+           <TextField
+             label="Correo electrónico (opcional)"
+             value={formData.email}
+             onChange={handleChange('email')}
+             fullWidth
+             error={errors.email}
+             helperText={errors.email ? "Ingresa un correo electrónico válido" : "Recibirás confirmación por email"}
+             margin="normal"
+             disabled={loading}
+             type="email"
+             placeholder="correo@ejemplo.com"
+             InputProps={{
+               startAdornment: (
+                 <InputAdornment position="start">
+                   <EmailIcon sx={{ color: errors.email ? 'error.main' : 'action.active' }} />
                  </InputAdornment>
                ),
              }}

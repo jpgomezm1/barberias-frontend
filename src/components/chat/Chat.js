@@ -260,7 +260,8 @@ Selecciona la acción que deseas realizar:`
     setAppointmentFormOpen(false);
     
     // Construir mensaje completo para el sistema
-    const fullMessage = `Quiero agendar una cita con ${formData.barber} para el ${formData.formattedDateTime}. Mi nombre es ${formData.clientName}, mi teléfono es ${formData.phone} y quiero un servicio de ${formData.service}.`;
+    const emailPart = formData.email ? `, mi correo es ${formData.email}` : '';
+    const fullMessage = `Quiero agendar una cita con ${formData.barber} para el ${formData.formattedDateTime}. Mi nombre es ${formData.clientName}, mi teléfono es ${formData.phone}${emailPart} y quiero un servicio de ${formData.service}.`;
     
     // Simular entrada de usuario
     setMessages(prev => [
@@ -275,11 +276,19 @@ Selecciona la acción que deseas realizar:`
     // Cambiar la acción a appointment
     setSelectedAction('appointment');
     
-    // Procesar la solicitud automáticamente, pasando 'appointment' como override
+    // Procesar la solicitud automáticamente, pasando 'appointment' como override y email
     handleSubmit({
       preventDefault: () => {},
       target: null
-    }, fullMessage, 'appointment');
+    }, fullMessage, 'appointment', {
+      email: formData.email || null, // Pasar email al backend
+      clientName: formData.clientName,
+      phone: formData.phone,
+      service: formData.service,
+      barber: formData.barber,
+      appointmentDate: formData.date,
+      appointmentTime: formData.time?.start
+    });
   };
 
   const handleActionSelect = (actionId) => {
@@ -333,8 +342,8 @@ Selecciona la acción que deseas realizar:`,
     setTypingIndicator(false);
   };
 
-  // Modificar handleSubmit para aceptar un tercer parámetro "actionOverride"
-  const handleSubmit = async (e, overrideValue = null, actionOverride = null) => {
+  // Modificar handleSubmit para aceptar parámetros adicionales
+  const handleSubmit = async (e, overrideValue = null, actionOverride = null, additionalData = {}) => {
     e.preventDefault();
     const submitValue = overrideValue || inputValue;
     
@@ -369,12 +378,23 @@ Selecciona la acción que deseas realizar:`,
 
       const response = await axios.post(API_ENDPOINTS[endpointAction], {
         prompt: submitValue.trim(),
-        subdomain: ESTABLISHMENT_SUBDOMAIN // Añadir el subdominio a la solicitud
+        subdomain: ESTABLISHMENT_SUBDOMAIN, // Añadir el subdominio a la solicitud
+        ...additionalData // Incluir datos adicionales (como email)
       });
+      
+      // VALIDACIÓN CRÍTICA: Verificar que la respuesta sea exitosa
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+      }
       
       const { data } = response;
       
       console.log("Respuesta completa del backend:", data);
+      
+      // VALIDACIÓN ADICIONAL: Verificar que el backend indique éxito
+      if (data.error || data.status === 'error') {
+        throw new Error(data.error || data.message || 'El backend reportó un error');
+      }
 
       // Actualizar información del establecimiento si está disponible
       if (data.establishment_name) {
@@ -421,8 +441,20 @@ Selecciona la acción que deseas realizar:`,
       setMessages(prev => [...prev, systemMessage]);
       scrollToBottom('smooth');
 
+      // SOLO mostrar éxito si llegamos hasta aquí sin errores
       if (endpointAction === 'appointment') {
-        setConfirmationPopupData({ type: 'appointment', message: 'Agendamiento Confirmado' });
+        let confirmationMessage = 'Agendamiento Confirmado';
+        
+        // Mejorar mensaje según el estado del email
+        if (additionalData.email) {
+          if (data.emailSent === true) {
+            confirmationMessage = 'Agendamiento Confirmado\n✅ Confirmación enviada por email';
+          } else if (data.emailSent === false) {
+            confirmationMessage = 'Agendamiento Confirmado\n⚠️ No se pudo enviar el email';
+          }
+        }
+        
+        setConfirmationPopupData({ type: 'appointment', message: confirmationMessage });
         setConfirmationPopupOpen(true);
       } else if (endpointAction === 'cancel') {
         setConfirmationPopupData({ type: 'cancel', message: 'Cancelación Confirmada' });
@@ -444,14 +476,65 @@ Selecciona la acción que deseas realizar:`,
       }, 1000);
 
     } catch (error) {
-      console.error('Error:', error);
-      const errorMessage = error.response?.data?.error || 'Hubo un error al procesar tu solicitud.';
+      console.error('Error completo:', error);
+      
+      let errorMessage = 'Hubo un error al procesar tu solicitud.';
+      let userFriendlyMessage = 'Lo siento, hubo un error al procesar tu solicitud. Por favor, intenta nuevamente.';
+      
+      // Si es un error de respuesta HTTP
+      if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        console.error(`Error HTTP ${status}:`, data);
+        
+        // Mensajes específicos por código de estado
+        switch (status) {
+          case 404:
+            errorMessage = 'Servicio no encontrado (Error 404)';
+            userFriendlyMessage = '❌ No se pudo procesar tu solicitud. El servicio no está disponible en este momento.';
+            break;
+          case 400:
+            errorMessage = 'Datos inválidos (Error 400)';
+            userFriendlyMessage = '⚠️ Hubo un problema con la información enviada. Por favor, verifica los datos.';
+            break;
+          case 500:
+            errorMessage = 'Error interno del servidor (Error 500)';
+            userFriendlyMessage = '🔧 Hay un problema temporal con nuestros servidores. Intenta nuevamente en unos minutos.';
+            break;
+          case 503:
+            errorMessage = 'Servicio no disponible (Error 503)';
+            userFriendlyMessage = '⏰ El servicio está temporalmente no disponible. Por favor, intenta más tarde.';
+            break;
+          default:
+            errorMessage = `Error HTTP ${status}`;
+            userFriendlyMessage = `💥 Ocurrió un error inesperado (${status}). Por favor, intenta nuevamente.`;
+        }
+        
+        // Si el backend envió un mensaje específico, usarlo
+        if (data?.error) {
+          userFriendlyMessage = `❌ ${data.error}`;
+        } else if (data?.message) {
+          userFriendlyMessage = `⚠️ ${data.message}`;
+        }
+      } 
+      // Si es un error de red (sin respuesta)
+      else if (error.request) {
+        errorMessage = 'Error de conexión';
+        userFriendlyMessage = '🌐 No se pudo conectar con el servidor. Verifica tu conexión a internet.';
+      }
+      // Si es otro tipo de error
+      else {
+        errorMessage = error.message || 'Error desconocido';
+        userFriendlyMessage = `⚡ ${error.message || 'Ocurrió un error inesperado. Por favor, intenta nuevamente.'}`;
+      }
+      
       setError(errorMessage);
       setMessages(prev => [
         ...prev,
         {
           type: 'system',
-          content: 'Lo siento, hubo un error al procesar tu solicitud. Por favor, intenta nuevamente.',
+          content: userFriendlyMessage,
           timestamp: new Date().toLocaleTimeString()
         }
       ]);

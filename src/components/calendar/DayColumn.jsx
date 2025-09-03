@@ -275,10 +275,18 @@ const DayColumn = ({ dayData, onTimeSlotSelect }) => {
                 <TimeSlot
                   key={`${timeSlot.start}-${index}`}
                   timeSlot={timeSlot}
-                  onSelect={() => onTimeSlotSelect(timeSlot)}
+                  onSelect={() => onTimeSlotSelect({
+                    ...timeSlot,
+                    barber: dayData.barber || 'Barbero',
+                    date: dayData.date,
+                    dateTime: `${dayData.date}T${timeSlot.start}:00`,
+                    formattedDateTime: `${dayData.date} ${timeSlot.start}`,
+                    isLast: index === dayData.free_intervals.length - 1
+                  })}
                   isToday={isToday()}
                   isFirst={index === 0}
                   isLast={index === dayData.free_intervals.length - 1}
+                  dayData={dayData}
                 />
               ))}
             </>

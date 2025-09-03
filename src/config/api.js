@@ -49,7 +49,8 @@ export const API_ENDPOINTS = {
   establishmentInfo: `${API_BASE_URL}/establishment-info`,
   barber_schedule: `${API_BASE_URL}/barber_schedule` ,
   barbers: `${API_BASE_URL}/barbers`,  // Nuevo endpoint
-  services: `${API_BASE_URL}/services` // Nuevo endpoint para consultar servicios
+  services: `${API_BASE_URL}/services`, // Nuevo endpoint para consultar servicios
+  lastSlotStatus: `${API_BASE_URL}/last-slot-status` // Endpoint para consultar estado del último slot
 };
 
 // Exportar el subdominio para uso en otros componentes
