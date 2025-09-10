@@ -116,14 +116,14 @@ const TimeSlot = ({ timeSlot, onSelect, isToday, isFirst, isLast, dayData }) => 
         borderRadius: 1,
         border: '1px solid',
         borderColor: isSlotBlocked ? 'rgba(211, 47, 47, 0.3)' : 'rgba(0,0,0,0.1)',
-        backgroundColor: isSlotBlocked ? 'rgba(211, 47, 47, 0.1)' : isLast ? 'rgba(255, 193, 7, 0.1)' : 'white',
+        backgroundColor: isSlotBlocked ? 'rgba(211, 47, 47, 0.1)' : 'white',
         boxShadow: isSlotBlocked ? 'none' : '0 2px 4px rgba(0,0,0,0.05)',
         transition: 'all 0.2s ease',
         opacity: isSlotBlocked || loadingLastSlotStatus ? 0.8 : 1,
         cursor: isSlotBlocked ? 'not-allowed' : 'pointer',
         '&:hover': !isSlotBlocked ? {
-          backgroundColor: isLast ? 'rgba(255, 193, 7, 0.2)' : 'rgba(0,172,71,0.08)',
-          borderColor: isLast ? 'rgba(255, 193, 7, 0.4)' : 'rgba(0,172,71,0.2)',
+          backgroundColor: 'rgba(0,172,71,0.08)',
+          borderColor: 'rgba(0,172,71,0.2)',
           boxShadow: '0 3px 8px rgba(0,0,0,0.1)',
         } : {
           backgroundColor: 'rgba(211, 47, 47, 0.15)',
@@ -160,7 +160,7 @@ const TimeSlot = ({ timeSlot, onSelect, isToday, isFirst, isLast, dayData }) => 
           sx={{ 
             fontSize: '0.9rem',
             fontWeight: 600,
-            color: isSlotBlocked ? '#D32F2F' : isLast ? '#FF8F00' : '#2C3E50',
+            color: isSlotBlocked ? '#D32F2F' : '#2C3E50',
             position: 'relative',
             zIndex: 2
           }}
@@ -172,7 +172,7 @@ const TimeSlot = ({ timeSlot, onSelect, isToday, isFirst, isLast, dayData }) => 
           variant="caption"
           sx={{ 
             fontSize: '0.7rem',
-            color: isSlotBlocked ? 'rgba(211, 47, 47, 0.7)' : isLast ? 'rgba(255, 152, 0, 0.8)' : 'text.secondary',
+            color: isSlotBlocked ? 'rgba(211, 47, 47, 0.7)' : 'text.secondary',
             mt: 0.25,
             position: 'relative',
             zIndex: 2
@@ -181,19 +181,6 @@ const TimeSlot = ({ timeSlot, onSelect, isToday, isFirst, isLast, dayData }) => 
           {formatTime(adjustedTimeSlot.end)}
         </Typography>
         
-        {isLast && !isSlotBlocked && !loadingLastSlotStatus && (
-          <Typography 
-            variant="caption"
-            sx={{ 
-              fontSize: '0.65rem',
-              color: '#FF8F00',
-              mt: 0.5,
-              fontWeight: 600
-            }}
-          >
-            45 min - Corte/Barba
-          </Typography>
-        )}
         
         {loadingLastSlotStatus && (
           <Typography 
