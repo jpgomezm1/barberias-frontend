@@ -64,9 +64,19 @@ const AppointmentFormModal = ({
    }).format(value);
  };
 
- // Función para detectar si es el último slot basado en la propiedad isLastSlot
+ // Función para detectar si es el último slot (6:45 PM)
  const isLastSlot = () => {
-   return selectedTimeInfo?.isLastSlot === true;
+   // Verificar si es el último slot por la propiedad isLastSlot
+   if (selectedTimeInfo?.isLastSlot === true) {
+     return true;
+   }
+   
+   // Verificación adicional por hora: si es 6:45 PM (19:00 en formato 24h es el slot que termina a las 7:00)
+   if (selectedTimeInfo?.time?.start === '18:45' || selectedTimeInfo?.time?.start === '19:00') {
+     return true;
+   }
+   
+   return false;
  };
 
  useEffect(() => {
@@ -95,12 +105,15 @@ const AppointmentFormModal = ({
          if (res.data && res.data.services) {
            let availableServices = res.data.services;
            
-           // Si es el último slot, filtrar solo servicios permitidos (Corte y Barba)
+           // Si es el último slot (6:45 PM), filtrar solo servicios permitidos (Corte y Barba)
+           // Esto es porque en el horario de cierre solo se pueden hacer servicios rápidos
            if (isLastSlotSelected) {
              availableServices = res.data.services.filter(service => {
-               const serviceName = service.name.toLowerCase();
+               const serviceName = service.name.toLowerCase().trim();
                return serviceName === "corte" || serviceName === "barba";
              });
+             
+             console.log("Último slot detectado - Servicios filtrados:", availableServices.map(s => s.name));
            }
            
            setServices(availableServices);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   TextField,
@@ -29,7 +29,29 @@ const AppointmentForm = ({ onSubmit }) => {
   });
 
   const barbers = ['Diego', 'Juan', 'Tomás'];
-  const services = ['Corte', 'Barba', 'Corte y Barba'];
+  
+  // Función para verificar si la hora seleccionada es el último slot (6:45 PM)
+  const isLastSlot = (dateTime) => {
+    if (!dateTime || !dateTime.isValid) return false;
+    const hour = dateTime.hour;
+    const minute = dateTime.minute;
+    // Verificar si es 6:45 PM (18:45)
+    return (hour === 18 && minute === 45);
+  };
+
+  // Servicios disponibles según el horario
+  const getAvailableServices = () => {
+    const allServices = ['Corte', 'Barba', 'Corte y Barba'];
+    
+    // Si es el último slot (6:45 PM), solo permitir Corte y Barba
+    if (isLastSlot(formData.dateTime)) {
+      return ['Corte', 'Barba'];
+    }
+    
+    return allServices;
+  };
+  
+  const services = getAvailableServices();
 
   const validatePhone = (phone) => {
     const phoneRegex = /^[0-9]{10}$/;
@@ -80,9 +102,16 @@ const AppointmentForm = ({ onSubmit }) => {
   };
 
   const handleDateChange = (newValue) => {
+    const wasLastSlot = isLastSlot(formData.dateTime);
+    const isNowLastSlot = isLastSlot(newValue);
+    
+    // Si cambió de/a último slot, resetear servicio seleccionado
+    const shouldResetService = wasLastSlot !== isNowLastSlot && formData.service;
+    
     setFormData({
       ...formData,
-      dateTime: newValue
+      dateTime: newValue,
+      service: shouldResetService ? '' : formData.service
     });
     setErrors(prev => ({ ...prev, dateTime: false }));
   };
